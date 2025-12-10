@@ -5,7 +5,9 @@
     <!-- 認証状態表示 -->
     <div class="auth-status" v-if="!isAuthenticated">
       <p>Google認証が必要です</p>
-      <button @click="authenticate" class="btn btn-primary">Googleで認証</button>
+      <button @click="authenticate" class="btn btn-primary">
+        Googleで認証
+      </button>
     </div>
     <div class="auth-status authenticated" v-else>
       <p>✓ 認証済み</p>
@@ -14,19 +16,19 @@
     <!-- UUID生成モード選択 -->
     <div class="mode-selection">
       <label>
-        <input 
-          type="radio" 
-          v-model="mode" 
-          value="auto" 
+        <input
+          type="radio"
+          v-model="mode"
+          value="auto"
           @change="handleModeChange"
         />
         自動生成
       </label>
       <label>
-        <input 
-          type="radio" 
-          v-model="mode" 
-          value="manual" 
+        <input
+          type="radio"
+          v-model="mode"
+          value="manual"
           @change="handleModeChange"
         />
         手動入力
@@ -38,13 +40,22 @@
       <div v-for="(uuid, index) in uuids" :key="index" class="uuid-item">
         <input
           v-model="uuids[index]"
-          :placeholder="mode === 'auto' ? '自動生成されます' : 'UUIDを入力してください'"
+          :placeholder="
+            mode === 'auto' ? '自動生成されます' : 'UUIDを入力してください'
+          "
           :readonly="mode === 'auto'"
           class="uuid-input"
         />
-        <button 
-          v-if="mode === 'manual' && uuids.length > 1" 
-          @click="removeUuid(index)" 
+        <button
+          v-if="mode === 'manual' && uuids.length > 1"
+          @click="removeUuid(index)"
+          class="btn btn-danger btn-small"
+        >
+          削除
+        </button>
+        <button
+          v-if="mode === 'auto' && uuids.length > 1"
+          @click="removeUuid(index)"
           class="btn btn-danger btn-small"
         >
           削除
@@ -52,18 +63,18 @@
       </div>
 
       <!-- 自動生成ボタン -->
-      <button 
-        v-if="mode === 'auto'" 
-        @click="generateUuids" 
+      <button
+        v-if="mode === 'auto'"
+        @click="generateUuids"
         class="btn btn-secondary"
       >
-        UUIDを生成
+        UUIDを生成（最大10個）
       </button>
 
       <!-- 手動入力追加ボタン -->
-      <button 
-        v-if="mode === 'manual' && uuids.length < 10" 
-        @click="addUuid" 
+      <button
+        v-if="mode === 'manual' && uuids.length < 10"
+        @click="addUuid"
         class="btn btn-secondary"
       >
         UUIDを追加
@@ -80,8 +91,8 @@
 
     <!-- 保存ボタン -->
     <div class="actions">
-      <button 
-        @click="uploadToDrive" 
+      <button
+        @click="uploadToDrive"
         :disabled="!canUpload || isUploading"
         class="btn btn-primary btn-large"
       >
@@ -98,45 +109,53 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
-import { v4 as uuidv4 } from 'uuid';
-import QRCode from 'qrcode';
+import { ref, computed, watch, onMounted } from "vue";
+import { v4 as uuidv4 } from "uuid";
+import QRCode from "qrcode";
 
-const mode = ref<'auto' | 'manual'>('auto');
-const uuids = ref<string[]>(['']);
-const qrCodeDataUrl = ref<string>('');
+const mode = ref<"auto" | "manual">("auto");
+const uuids = ref<string[]>([""]);
+const qrCodeDataUrl = ref<string>("");
 const isAuthenticated = ref(false);
 const isUploading = ref(false);
-const message = ref('');
-const messageType = ref<'success' | 'error'>('success');
+const message = ref("");
+const messageType = ref<"success" | "error">("success");
 
 const canUpload = computed(() => {
-  return isAuthenticated.value && 
-         uuids.value.length > 0 && 
-         uuids.value.every(uuid => uuid.trim() !== '') &&
-         !isUploading.value;
+  return (
+    isAuthenticated.value &&
+    uuids.value.length > 0 &&
+    uuids.value.every((uuid) => uuid.trim() !== "") &&
+    !isUploading.value
+  );
 });
 
 // UUIDの変更を監視してQRコードを更新
-watch(() => uuids.value[0], async (newUuid) => {
-  if (newUuid && newUuid.trim() !== '') {
-    try {
-      qrCodeDataUrl.value = await QRCode.toDataURL(newUuid, {
-        width: 300,
-        margin: 1
-      });
-    } catch (error) {
-      console.error('QRコード生成エラー:', error);
+watch(
+  () => uuids.value[0],
+  async (newUuid) => {
+    if (newUuid && newUuid.trim() !== "") {
+      try {
+        qrCodeDataUrl.value = await QRCode.toDataURL(newUuid, {
+          width: 300,
+          margin: 1,
+        });
+      } catch (error) {
+        console.error("QRコード生成エラー:", error);
+      }
+    } else {
+      qrCodeDataUrl.value = "";
     }
-  } else {
-    qrCodeDataUrl.value = '';
-  }
-}, { immediate: true });
+  },
+  { immediate: true }
+);
 
 // 認証状態をチェック
 const checkAuthStatus = async () => {
   try {
-    const response = await $fetch<{ isAuthenticated: boolean }>('/api/auth/status');
+    const response = await $fetch<{ isAuthenticated: boolean }>(
+      "/api/auth/status"
+    );
     isAuthenticated.value = response.isAuthenticated;
   } catch (error) {
     isAuthenticated.value = false;
@@ -146,36 +165,37 @@ const checkAuthStatus = async () => {
 // Google認証を開始
 const authenticate = async () => {
   try {
-    const response = await $fetch('/api/auth/google');
+    const response = await $fetch("/api/auth/google");
     if (response.authUrl) {
       window.location.href = response.authUrl;
     }
   } catch (error: any) {
-    showMessage('認証エラー: ' + error.message, 'error');
+    showMessage("認証エラー: " + error.message, "error");
   }
 };
 
 // モード変更時の処理
 const handleModeChange = () => {
-  if (mode.value === 'auto') {
-    // 自動生成モードでは1つのUUIDを自動生成
-    uuids.value = [uuidv4()];
+  if (mode.value === "auto") {
+    // 自動生成モードでは空の配列（生成ボタンで生成）
+    uuids.value = [];
   } else {
     // 手動入力モードでは空の入力欄を1つ
-    uuids.value = [''];
+    uuids.value = [""];
   }
 };
 
 // UUIDを自動生成
 const generateUuids = () => {
-  const count = Math.min(10, uuids.value.length || 1);
+  // 最大10個まで生成
+  const count = 10;
   uuids.value = Array.from({ length: count }, () => uuidv4());
 };
 
 // UUIDを追加
 const addUuid = () => {
   if (uuids.value.length < 10) {
-    uuids.value.push('');
+    uuids.value.push("");
   }
 };
 
@@ -191,36 +211,40 @@ const uploadToDrive = async () => {
   if (!canUpload.value) return;
 
   // 空のUUIDを除外
-  const validUuids = uuids.value.filter(uuid => uuid.trim() !== '');
-  
+  const validUuids = uuids.value.filter((uuid) => uuid.trim() !== "");
+
   if (validUuids.length === 0) {
-    showMessage('UUIDが入力されていません', 'error');
+    showMessage("UUIDが入力されていません", "error");
     return;
   }
 
   isUploading.value = true;
-  message.value = '';
+  message.value = "";
 
   try {
-    const response = await $fetch('/api/drive/upload', {
-      method: 'POST',
+    const response = await $fetch("/api/drive/upload", {
+      method: "POST",
       body: {
-        uuids: validUuids
-      }
+        uuids: validUuids,
+      },
     });
 
-    showMessage(`アップロード成功: ${response.fileName}`, 'success');
-    
+    showMessage(`アップロード成功: ${response.fileName}`, "success");
+
     // 成功後、UUIDをクリア
-    if (mode.value === 'auto') {
-      uuids.value = [''];
+    if (mode.value === "auto") {
+      uuids.value = [];
     }
   } catch (error: any) {
     if (error.statusCode === 401) {
       isAuthenticated.value = false;
-      showMessage('認証が必要です。再度認証してください。', 'error');
+      showMessage("認証が必要です。再度認証してください。", "error");
     } else {
-      showMessage('アップロードエラー: ' + (error.message || error.data?.message || '不明なエラー'), 'error');
+      showMessage(
+        "アップロードエラー: " +
+          (error.message || error.data?.message || "不明なエラー"),
+        "error"
+      );
     }
   } finally {
     isUploading.value = false;
@@ -228,23 +252,23 @@ const uploadToDrive = async () => {
 };
 
 // メッセージを表示
-const showMessage = (msg: string, type: 'success' | 'error') => {
+const showMessage = (msg: string, type: "success" | "error") => {
   message.value = msg;
   messageType.value = type;
   setTimeout(() => {
-    message.value = '';
+    message.value = "";
   }, 5000);
 };
 
 onMounted(() => {
   checkAuthStatus();
-  
+
   // URLパラメータで認証完了を検知
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('auth') === 'success') {
+  if (urlParams.get("auth") === "success") {
     checkAuthStatus();
     // URLからパラメータを削除
-    window.history.replaceState({}, '', window.location.pathname);
+    window.history.replaceState({}, "", window.location.pathname);
   }
 });
 </script>
@@ -254,7 +278,8 @@ onMounted(() => {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
 }
 
 h1 {

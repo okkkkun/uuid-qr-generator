@@ -1,13 +1,13 @@
-# UUID QRコード生成アプリ
+# UUID QR コード生成アプリ
 
-UUIDを自動生成または手動入力し、そのQRコードをGoogleドライブにPDFとして保存するWebアプリケーションです。
+UUID を自動生成または手動入力し、その QR コードを Google ドライブに PDF として保存する Web アプリケーションです。
 
 ## 機能
 
-- UUIDの自動生成または手動入力（最大10件）
-- QRコードのプレビュー表示
-- GoogleドライブへのPDFアップロード
-- Google OAuth認証（初回のみ、以降はCookieでトークン管理）
+- UUID の自動生成または手動入力（最大 10 件）
+- QR コードのプレビュー表示
+- Google ドライブへの PDF アップロード
+- Google OAuth 認証（初回のみ、以降は Cookie でトークン管理）
 
 ## セットアップ
 
@@ -17,14 +17,14 @@ UUIDを自動生成または手動入力し、そのQRコードをGoogleドラ�
 yarn install
 ```
 
-### 2. Google OAuth設定
+### 2. Google OAuth 設定
 
 1. [Google Cloud Console](https://console.cloud.google.com/)でプロジェクトを作成
-2. Google Drive APIを有効化
-3. OAuth 2.0認証情報を作成
-4. 承認済みのリダイレクトURIに以下を追加：
+2. Google Drive API を有効化
+3. OAuth 2.0 認証情報を作成
+4. 承認済みのリダイレクト URI に以下を追加：
    - `http://localhost:3000/api/auth/callback` (開発環境)
-   - 本番環境のURL (本番環境の場合)
+   - 本番環境の URL (本番環境の場合)
 
 ### 3. 環境変数の設定
 
@@ -35,12 +35,25 @@ GOOGLE_CLIENT_ID=your_google_client_id_here
 GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/callback
 GOOGLE_DRIVE_FOLDER_ID=your_google_drive_folder_id_here
+
+# Cookie設定（カスタムドメインを使用する場合）
+COOKIE_DOMAIN=my-home.com
+COOKIE_SECURE=true  # HTTPSを使用する場合はtrue、HTTPの場合はfalse
 ```
 
-**GoogleドライブフォルダIDの取得方法：**
-1. Googleドライブでフォルダを開く
-2. URLから `folders/` の後の文字列がフォルダIDです
-   - 例: `https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j` → フォルダIDは `1a2b3c4d5e6f7g8h9i0j`
+**Cookie 設定について：**
+
+- `COOKIE_DOMAIN`: Cookie を設定するドメインを指定します（例: `my-home.com`）
+  - 先頭にドット（`.`）を付けると、サブドメイン全体で Cookie が有効になります（例: `.my-home.com`）
+  - 開発環境（localhost）では設定不要です
+- `COOKIE_SECURE`: HTTPS を使用する場合は`true`、HTTP の場合は`false`を設定します
+  - `true`の場合、HTTPS 接続でのみ Cookie が送信されます
+
+**Google ドライブフォルダ ID の取得方法：**
+
+1. Google ドライブでフォルダを開く
+2. URL から `folders/` の後の文字列がフォルダ ID です
+   - 例: `https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j` → フォルダ ID は `1a2b3c4d5e6f7g8h9i0j`
 
 ## Setup
 

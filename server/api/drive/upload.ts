@@ -1,13 +1,17 @@
-import { google } from 'googleapis';
-import QRCode from 'qrcode';
-import PDFDocument from 'pdfkit';
-import { Readable } from 'stream';
+import { google } from "googleapis";
+import QRCode from "qrcode";
+import PDFDocument from "pdfkit";
+import { Readable } from "stream";
 
 async function getAuthenticatedClient(event: any) {
   const config = useRuntimeConfig();
   const clientId = config.googleClientId || process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = config.googleClientSecret || process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = config.googleRedirectUri || process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/callback';
+  const clientSecret =
+    config.googleClientSecret || process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri =
+    config.googleRedirectUri ||
+    process.env.GOOGLE_REDIRECT_URI ||
+    "http://localhost:3000/api/auth/callback";
 
   const oauth2Client = new google.auth.OAuth2(
     clientId,
@@ -15,19 +19,19 @@ async function getAuthenticatedClient(event: any) {
     redirectUri
   );
 
-  let accessToken = getCookie(event, 'google_access_token');
-  const refreshToken = getCookie(event, 'google_refresh_token');
+  let accessToken = getCookie(event, "google_access_token");
+  const refreshToken = getCookie(event, "google_refresh_token");
 
   if (!accessToken && !refreshToken) {
     throw createError({
       statusCode: 401,
-      message: '認証が必要です'
+      message: "認証が必要です",
     });
   }
 
   oauth2Client.setCredentials({
     access_token: accessToken,
-    refresh_token: refreshToken
+    refresh_token: refreshToken,
   });
 
   // トークンの有効性をチェック（必要に応じてリフレッシュ）
@@ -39,34 +43,46 @@ async function getAuthenticatedClient(event: any) {
       try {
         const { credentials } = await oauth2Client.refreshAccessToken();
         accessToken = credentials.access_token!;
-        
+
         // 新しいトークンをCookieに保存
-        const expiresAt = credentials.expiry_date 
-          ? new Date(credentials.expiry_date) 
+        const expiresAt = credentials.expiry_date
+          ? new Date(credentials.expiry_date)
           : new Date(Date.now() + 3600 * 1000);
 
-        setCookie(event, 'google_access_token', accessToken, {
+        // Cookie設定を準備
+        const cookieSecure =
+          config.cookieSecure !== undefined
+            ? config.cookieSecure
+            : process.env.COOKIE_SECURE === "true" ||
+              process.env.NODE_ENV === "production";
+
+        const cookieOptions: any = {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
+          secure: cookieSecure,
+          sameSite: "lax",
+          domain: "my-home.com",
+        };
+
+        setCookie(event, "google_access_token", accessToken, {
+          ...cookieOptions,
           expires: expiresAt,
-          maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000)
+          maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
         });
 
         oauth2Client.setCredentials({
           access_token: accessToken,
-          refresh_token: refreshToken
+          refresh_token: refreshToken,
         });
       } catch (refreshError) {
         throw createError({
           statusCode: 401,
-          message: 'トークンのリフレッシュに失敗しました。再認証が必要です。'
+          message: "トークンのリフレッシュに失敗しました。再認証が必要です。",
         });
       }
     } else {
       throw createError({
         statusCode: 401,
-        message: '認証が必要です'
+        message: "認証が必要です",
       });
     }
   }
@@ -78,30 +94,33 @@ async function generateQRCodePDF(uuids: string[]): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({
-        size: 'A4',
-        margin: 50
+        size: "A4",
+        margin: 50,
       });
 
       const buffers: Buffer[] = [];
-      doc.on('data', buffers.push.bind(buffers));
-      doc.on('end', () => {
+      doc.on("data", buffers.push.bind(buffers));
+      doc.on("end", () => {
         const pdfBuffer = Buffer.concat(buffers);
         resolve(pdfBuffer);
       });
-      doc.on('error', reject);
+      doc.on("error", reject);
 
       for (let i = 0; i < uuids.length; i++) {
         const uuid = uuids[i];
-        
+
         // QRコードを生成
         const qrCodeDataUrl = await QRCode.toDataURL(uuid, {
           width: 300,
-          margin: 1
+          margin: 1,
         });
 
         // Data URLから画像データを抽出
-        const base64Data = qrCodeDataUrl.replace(/^data:image\/png;base64,/, '');
-        const imageBuffer = Buffer.from(base64Data, 'base64');
+        const base64Data = qrCodeDataUrl.replace(
+          /^data:image\/png;base64,/,
+          ""
+        );
+        const imageBuffer = Buffer.from(base64Data, "base64");
 
         // PDFに画像を追加
         if (i > 0) {
@@ -120,7 +139,7 @@ async function generateQRCodePDF(uuids: string[]): Promise<Buffer> {
         // UUIDテキストを追加
         doc.fontSize(12);
         doc.text(uuid, pageWidth / 2, y + imageSize + 20, {
-          align: 'center'
+          align: "center",
         });
       }
 
@@ -132,10 +151,10 @@ async function generateQRCodePDF(uuids: string[]): Promise<Buffer> {
 }
 
 export default defineEventHandler(async (event) => {
-  if (event.method !== 'POST') {
+  if (event.method !== "POST") {
     throw createError({
       statusCode: 405,
-      message: 'Method not allowed'
+      message: "Method not allowed",
     });
   }
 
@@ -145,24 +164,25 @@ export default defineEventHandler(async (event) => {
   if (!Array.isArray(uuids) || uuids.length === 0) {
     throw createError({
       statusCode: 400,
-      message: 'UUIDの配列が必要です'
+      message: "UUIDの配列が必要です",
     });
   }
 
   if (uuids.length > 10) {
     throw createError({
       statusCode: 400,
-      message: 'UUIDは最大10件までです'
+      message: "UUIDは最大10件までです",
     });
   }
 
   // UUIDの形式を検証
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   for (const uuid of uuids) {
-    if (typeof uuid !== 'string' || !uuidRegex.test(uuid)) {
+    if (typeof uuid !== "string" || !uuidRegex.test(uuid)) {
       throw createError({
         statusCode: 400,
-        message: `無効なUUID形式です: ${uuid}`
+        message: `無効なUUID形式です: ${uuid}`,
       });
     }
   }
@@ -170,7 +190,7 @@ export default defineEventHandler(async (event) => {
   try {
     // 認証されたクライアントを取得
     const authClient = await getAuthenticatedClient(event);
-    const drive = google.drive({ version: 'v3', auth: authClient });
+    const drive = google.drive({ version: "v3", auth: authClient });
 
     // PDFを生成
     const pdfBuffer = await generateQRCodePDF(uuids);
@@ -180,36 +200,36 @@ export default defineEventHandler(async (event) => {
 
     // Googleドライブにアップロード
     const config = useRuntimeConfig();
-    const folderId = config.googleDriveFolderId || process.env.GOOGLE_DRIVE_FOLDER_ID;
+    const folderId =
+      config.googleDriveFolderId || process.env.GOOGLE_DRIVE_FOLDER_ID;
 
     const fileMetadata = {
       name: `uuid-qr-codes-${Date.now()}.pdf`,
-      parents: folderId ? [folderId] : undefined
+      parents: folderId ? [folderId] : undefined,
     };
 
     const media = {
-      mimeType: 'application/pdf',
-      body: pdfStream
+      mimeType: "application/pdf",
+      body: pdfStream,
     };
 
     const response = await drive.files.create({
       requestBody: fileMetadata,
       media: media,
-      fields: 'id,name,webViewLink'
+      fields: "id,name,webViewLink",
     });
 
     return {
       success: true,
       fileId: response.data.id,
       fileName: response.data.name,
-      webViewLink: response.data.webViewLink
+      webViewLink: response.data.webViewLink,
     };
   } catch (error: any) {
     console.error(error);
     throw createError({
       statusCode: 500,
-      message: `アップロードエラー: ${error.message}`
+      message: `アップロードエラー: ${error.message}`,
     });
   }
 });
-
