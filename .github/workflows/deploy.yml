@@ -1,0 +1,92 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+env:
+  SERVICE_NAME: uuid-qr-generator
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/arm64
+
+    steps:
+      - name: Prepare platform
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ matrix.platform }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: okkkkun/uuid-qr-generator
+          tags: |
+            type=raw,value=${{ github.sha }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          file: docker/Dockerfile
+          context: .
+          push: true
+          platforms: ${{ matrix.platform }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # - name: Set up kubectl
+      #   uses: azure/setup-kubectl@v4
+
+      # - name: Install kustomize
+      #   run: |
+      #     curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+      #     sudo mv ./kustomize /usr/local/bin/
+
+      # - name: Checkout manifests repository
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: okkkkun/my-home-manifests
+      #     ref: main
+      #     path: my-home-manifests
+      #     token: ${{ secrets.PERSONAL_TOKEN }}
+
+      # - name: Update image tag in manifests
+      #   run: |
+      #     git config --global user.name "$GITHUB_ACTOR"
+      #     git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      #     cd my-home-manifests/manifests/products/oct-web/overlays && kustomize edit set image okkkkun/oct-web:${{ github.sha }} && cd -
+      #     cd my-home-manifests
+      #     if git diff --quiet; then
+      #       echo "差分がありません。既に更新済みの為、処理を終了します。"
+      #       exit 0
+      #     fi
+      #     git add . && git commit -m "oct-web publish new version $IMAGE_TAG" && git push origin main
+      #     echo "イメージを更新しました。"
