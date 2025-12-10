@@ -1393,6 +1393,13 @@
   dependencies:
     parse-path "*"
 
+"@types/pdfkit@^0.17.4":
+  version "0.17.4"
+  resolved "https://registry.yarnpkg.com/@types/pdfkit/-/pdfkit-0.17.4.tgz#28d62e41bec19adb356d61ed41015b3b2f59031d"
+  integrity sha512-odAmVuuguRxKh1X4pbMrJMp8ecwNqHRw6lweupvzK+wuyNmi6wzlUlGVZ9EqMvp3Bs2+L9Ty0sRlrvKL+gsQZg==
+  dependencies:
+    "@types/node" "*"
+
 "@types/qrcode@^1.5.6":
   version "1.5.6"
   resolved "https://registry.yarnpkg.com/@types/qrcode/-/qrcode-1.5.6.tgz#07c33cb9ec0ad88be4636e636e28e54d99b65f42"

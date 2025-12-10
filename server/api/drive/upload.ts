@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 import QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
-import { v4 as uuidv4 } from 'uuid';
+import { Readable } from 'stream';
 
 async function getAuthenticatedClient(event: any) {
   const config = useRuntimeConfig();
@@ -175,6 +175,9 @@ export default defineEventHandler(async (event) => {
     // PDFを生成
     const pdfBuffer = await generateQRCodePDF(uuids);
 
+    // バッファをストリームに変換
+    const pdfStream = Readable.from(pdfBuffer);
+
     // Googleドライブにアップロード
     const config = useRuntimeConfig();
     const folderId = config.googleDriveFolderId || process.env.GOOGLE_DRIVE_FOLDER_ID;
@@ -186,7 +189,7 @@ export default defineEventHandler(async (event) => {
 
     const media = {
       mimeType: 'application/pdf',
-      body: pdfBuffer
+      body: pdfStream
     };
 
     const response = await drive.files.create({
@@ -202,6 +205,7 @@ export default defineEventHandler(async (event) => {
       webViewLink: response.data.webViewLink
     };
   } catch (error: any) {
+    console.error(error);
     throw createError({
       statusCode: 500,
       message: `アップロードエラー: ${error.message}`
