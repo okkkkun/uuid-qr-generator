@@ -62,31 +62,31 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      # - name: Set up kubectl
-      #   uses: azure/setup-kubectl@v4
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
 
-      # - name: Install kustomize
-      #   run: |
-      #     curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
-      #     sudo mv ./kustomize /usr/local/bin/
+      - name: Install kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv ./kustomize /usr/local/bin/
 
-      # - name: Checkout manifests repository
-      #   uses: actions/checkout@v4
-      #   with:
-      #     repository: okkkkun/my-home-manifests
-      #     ref: main
-      #     path: my-home-manifests
-      #     token: ${{ secrets.PERSONAL_TOKEN }}
+      - name: Checkout manifests repository
+        uses: actions/checkout@v4
+        with:
+          repository: okkkkun/my-home-manifests
+          ref: main
+          path: my-home-manifests
+          token: ${{ secrets.PERSONAL_TOKEN }}
 
-      # - name: Update image tag in manifests
-      #   run: |
-      #     git config --global user.name "$GITHUB_ACTOR"
-      #     git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
-      #     cd my-home-manifests/manifests/products/oct-web/overlays && kustomize edit set image okkkkun/oct-web:${{ github.sha }} && cd -
-      #     cd my-home-manifests
-      #     if git diff --quiet; then
-      #       echo "差分がありません。既に更新済みの為、処理を終了します。"
-      #       exit 0
-      #     fi
-      #     git add . && git commit -m "oct-web publish new version $IMAGE_TAG" && git push origin main
-      #     echo "イメージを更新しました。"
+      - name: Update image tag in manifests
+        run: |
+          git config --global user.name "$GITHUB_ACTOR"
+          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          cd my-home-manifests/manifests/products/uuid-qr-generator/overlays && kustomize edit set image okkkkun/uuid-qr-generator:${{ github.sha }} && cd -
+          cd my-home-manifests
+          if git diff --quiet; then
+            echo "差分がありません。既に更新済みの為、処理を終了します。"
+            exit 0
+          fi
+          git add . && git commit -m "uuid-qr-generator publish new version $IMAGE_TAG" && git push origin main
+          echo "イメージを更新しました。"
